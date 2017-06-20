@@ -18,15 +18,12 @@ containing a macroeconomic variable.}
 a dataframe is returned by this function containing two different growth rates, a growth
  rate per unit of time in the data and an annual growth rate.
 
- @import dplyr
+ @importFrom dplyr mutate
 
 
  @examples ME_growth(X)
  @examples ME_growth(X, "1970-01-01")
  @examples ME_growth(X, "1965-09-07", "2010-01-01")
-
-
- @export
 }
 \description{
 Time series data is frequently converted to growth rate data. In the conversion to growth rates

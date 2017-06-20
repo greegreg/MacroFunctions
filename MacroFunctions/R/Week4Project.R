@@ -89,7 +89,7 @@ fleext<-function(series, indx){                     #This function returns a fil
 #' @return A dataframe is returned with a time-series for the given argument placed within the function.
 #' This data frame is ready to be plotted and shown to a macroeconomic class, for example.
 #'
-#' @import readr
+#' @imporFrom readr read_table
 #'
 #' @examples ME_dtaextract("RGDP")
 #' @examples ME_dtaextract("Unemploymentrate")
@@ -174,17 +174,14 @@ TM_detect<-function(X){
 #' @return a dataframe is returned by this function containing two different growth rates, a growth
 #'  rate per unit of time in the data and an annual growth rate.
 #'
-#'  @import dplyr
+#'  @importFrom dplyr mutate
 #'
 #'
 #'  @examples ME_growth(X)
 #'  @examples ME_growth(X, "1970-01-01")
 #'  @examples ME_growth(X, "1965-09-07", "2010-01-01")
 #'
-#'
-#'  @export
-
-
+#' @export
 
 ME_growth<-function(X, mindate=NULL, maxdate=NULL){
         nms<-names(X)
@@ -213,7 +210,7 @@ ME_growth<-function(X, mindate=NULL, maxdate=NULL){
 #' allows this start date.
 #' @param maxdate is a character variable representing the date the user wants the time series to end, if the data allows this end date.
 #'
-#' @import dplyr
+#' @importFrom dplyr filter
 #'
 #' @return A dataframe is returned containing only data between the specified dates.
 #'
@@ -245,7 +242,7 @@ dt_trim<-function(X, mindate=NULL, maxdate=NULL){
 #' @param level is a logical variable specifying if the level data should be matched to the recession data or if the
 #' growth rate data should be matched to the recession data.
 #'
-#' @import dplyr
+#' @importFrom dplyr mutate filter
 #'
 #' @return A data frame of recession markers the same length as the input dataframe A is returned. This dataframe
 #' is now ready to be plotted in the same.
