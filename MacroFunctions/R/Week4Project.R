@@ -2,8 +2,8 @@
 #########         This package extracts and cleans #############
 #########    Macroeconomic data.                   #############
 ################################################################
-
-
+library(dplyr)
+library(readr)
 
 #' Series test
 #'
@@ -90,6 +90,8 @@ fleext<-function(series, indx){                     #This function returns a fil
 #' @return A dataframe is returned with a time-series for the given argument placed within the function.
 #' This data frame is ready to be plotted and shown to a macroeconomic class, for example.
 #'
+#' @import readr
+#'
 #' @examples ME_dtaextract("RGDP")
 #' @examples ME_dtaextract("Unemploymentrate")
 #' @examples ME_dtaextract("Population")
@@ -109,8 +111,8 @@ ME_dtaextract<-function(series){                     #This is the main function
                 units<-c("millions", "Index", "percent", "thousands", "unit")
                 skp<-fskip[indx]
                 unt<-units[indx]
-                dfout<-read_table(flenm, col_names=TRUE, skip=skp, col_types="Dd") %>%
-                        mutate(units=unt)
+                dfout<-readr::read_table(flenm, col_names=TRUE, skip=skp, col_types="Dd") %>%
+                        dplyr::mutate(units=unt)
                 colnames(dfout)<-c("date", tolower(srs), "units")
         }
         return(dfout)                                 #Returns a data frame with the chosen series
@@ -173,6 +175,8 @@ TM_detect<-function(X){
 #' @return a dataframe is returned by this function containing two different growth rates, a growth
 #'  rate per unit of time in the data and an annual growth rate.
 #'
+#'  @import dplyr
+#'
 #'
 #'  @examples ME_growth(X)
 #'  @examples ME_growth(X, "1970-01-01")
@@ -189,7 +193,7 @@ ME_growth<-function(X, mindate=NULL, maxdate=NULL){
                 xout<-cbind(X, grth(X))
                 xout<-xout[-1,]
                 TME<-TM_detect(xout)
-                xout<-xout %>% mutate(Measure=TME[[1]][[1]],
+                xout<-xout %>% dplyr::mutate(Measure=TME[[1]][[1]],
                                              Annual_Growth=Growth*TME[[2]][[1]], Measured="Annual")
         }else{
                         xout<-X
@@ -210,6 +214,8 @@ ME_growth<-function(X, mindate=NULL, maxdate=NULL){
 #' allows this start date.
 #' @param maxdate is a character variable representing the date the user wants the time series to end, if the data allows this end date.
 #'
+#' @import dplyr
+#'
 #' @return A dataframe is returned containing only data between the specified dates.
 #'
 
@@ -225,7 +231,7 @@ dt_trim<-function(X, mindate=NULL, maxdate=NULL){
         }else{
                 tmaxdate<-max(X$date)
         }
-        xout<-X %>% filter(date>=tmindate & date<=tmaxdate)
+        xout<-X %>% dplyr::filter(date>=tmindate & date<=tmaxdate)
         return(xout)
 }
 
@@ -240,6 +246,8 @@ dt_trim<-function(X, mindate=NULL, maxdate=NULL){
 #' @param level is a logical variable specifying if the level data should be matched to the recession data or if the
 #' growth rate data should be matched to the recession data.
 #'
+#' @import dplyr
+#'
 #' @return A data frame of recession markers the same length as the input dataframe A is returned. This dataframe
 #' is now ready to be plotted in the same.
 #'
@@ -247,9 +255,9 @@ dt_trim<-function(X, mindate=NULL, maxdate=NULL){
 
 groomdata<-function(A, B, level){
         if(level==TRUE){
-                XOUT<-A %>%  mutate(Cyc=max(B[,2])*recession) %>% filter(date>=min(B$date))
+                XOUT<-A %>%  dplyr::mutate(Cyc=max(B[,2])*recession) %>% dplyr::filter(date>=min(B$date))
         }else{
-                XOUT<-A %>%  mutate(Cyc=max(B[,6])*recession) %>% filter(date>=min(B$date))
+                XOUT<-A %>%  dplyr::mutate(Cyc=max(B[,6])*recession) %>% dplyr::filter(date>=min(B$date))
         }
 
 }
