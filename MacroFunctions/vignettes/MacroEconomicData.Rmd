@@ -1,0 +1,190 @@
+---
+title: "Macroeconomic Data Extraction"
+author: "Gregory Green PhD"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+library(tidyverse)
+library(knitr)
+ME_series<-function(series){
+        avseries<-toupper(c("RGDP", "CPI", "Unemploymentrate", "Population","Recession"))
+        test<-series %in% avseries 
+        if(test==FALSE){
+                stop("This data series is not available to this function")
+        }else{
+                xout<-TRUE
+                return(xout)
+        }
+}
+fleindex<-function(series){                          #The output of this function tells r how to construct
+        tst<-toupper(series)                         #a file sequence and a skip variable
+        if(tst=="RGDP"){
+                xout<-1
+        }else if(tst=="CPI"){
+                xout<-2
+        }else if(tst=="UNEMPLOYMENTRATE"){
+                xout<-3
+        }else if(tst=="POPULATION"){
+                xout<-4
+        }else{
+                xout<-5
+        }
+        return(xout)                                   #Returning an index for extracting data
+}
+fleext<-function(series, indx){                     #This function returns a file extension
+        baseprefix<-"https://fred.stlouisfed.org/data"
+        tfleext<-c("GDPC1.txt", "CPIAUCSL.txt", "UNRATE.txt", "POP.txt", "USREC.txt")
+        xout<-file.path(baseprefix, tfleext[indx])
+        return(xout)
+}
+ME_dtaextract<-function(series){                     #This is the main function
+        srs<-toupper(series)
+        tst<-ME_series(srs)
+        if(tst==TRUE){
+                indx<-fleindex(srs)               #Returns the extraction index for the vector index
+                flenm<-fleext(srs, indx)
+                fskip<-c(19, 54, 24, 30, 71)
+                units<-c("millions", "Index", "percent", "thousands", "unit")
+                skp<-fskip[indx]
+                unt<-units[indx]
+                dfout<-read_table(flenm, col_names=TRUE, skip=skp, col_types="Dd") %>%
+                        mutate(units=unt)
+                colnames(dfout)<-c("date", tolower(srs), "units")
+        }
+        return(dfout)                                 #Returns a data frame with the chosen series
+}
+grth<-function(X){
+        n<-nrow(X)
+        v<-X[,2][[1]]
+        dv<-diff(v)
+        gr<-dv/v[1:(n-1)]
+        gr<-data.frame(Growth=c(NA,gr))
+        return(gr)
+}
+dt_trim<-function(X, mindate=NULL, maxdate=NULL){
+        if(!is.null(mindate)){
+                tmindate<-as.Date(mindate)
+        }else{
+                tmindate<-min(X$date)
+        }
+        if(!is.null(maxdate)){
+                tmaxdate<-as.Date(maxdate)
+        }else{
+                tmaxdate<-max(X$date)
+        }
+        xout<-X %>% filter(date>=tmindate & date<=tmaxdate)
+        return(xout)
+}
+TM_detect<-function(X){
+        dt1<-as.numeric(X[1,1][[1]])
+        dt2<-as.numeric(X[2,1][[1]])
+        dt<-abs(dt1-dt2)
+        if(dt<=1){
+                xout<-list("Daily",365)
+        }else if(dt<=31){
+                xout<-list("Monthly", 12)
+        }else if(dt<=3*31){
+                xout<-list("Quarterly",4)
+        }else{
+                xout<-list("Annual",1)
+        }
+        return(xout)
+}
+ME_growth<-function(X, mindate=NULL, maxdate=NULL){
+        nms<-names(X)
+        if(!("Growth" %in% nms)){
+                xout<-cbind(X, grth(X))
+                xout<-xout[-1,]
+                TME<-TM_detect(xout)
+                xout<-xout %>% mutate(Measure=TME[[1]][[1]], 
+                                             Annual_Growth=Growth*TME[[2]][[1]], Measured="Annual")
+        }else{
+                        xout<-X
+                }
+        if(!is.null(mindate) | !is.null(maxdate)){
+                xout<-dt_trim(xout,mindate=mindate, maxdate=maxdate)
+        }
+        return(xout)
+}
+groomdata<-function(A, B, level){
+        if(level==TRUE){
+                XOUT<-A %>%  mutate(Cyc=max(B[,2])*recession) %>% filter(date>=min(B$date))
+        }else{
+                XOUT<-A %>%  mutate(Cyc=max(B[,6])*recession) %>% filter(date>=min(B$date))
+        }
+        
+}
+ME_Rec<-function(B, level=TRUE){
+        A<-ME_dtaextract("Recession")                #Extract the recession data
+        XOUT<-groomdata(A,B, level)
+        return(XOUT)
+}
+#library(AdvancedR)
+```
+
+# AdvancedR
+
+The goal of Macroeconomic functions is to extract macroeconomic time series data quickly and efficiently. If desired the extracted time series data can be expanded to include columns of growth rates. In addition, when presenting macroeconomic times series data the points in the data where a recession occurred is often informative. This package includes a function used to extract US recession dates and prepare them for  presentation with other macroeconomic data.
+
+## Example
+
+Currently this package will extract the following four time series, Real GDP (RGDP), Consumer Price Index (CPI), the unemployment rate (unemploymentrate), and the US population (population), using the ME_dtaextract() function For example to extract the macroeconomic time series for real gross domestic product:
+
+```{r example}
+X<-ME_dtaextract("rgdp")
+kable(head(X))
+```
+
+The data in this table is in levels; i.e. for each date in the table we're given the level of real GDP. The data in this table can easily be rendered in a graphical form.
+
+```{r Fig1}
+X %>% ggplot(aes(x=date, y=rgdp))+
+        geom_point()+
+        geom_line(color="dodgerblue3")+
+        geom_hline(yintercept=0)
+```
+
+
+In many circumstances the data given in levels is more interesting if it is transformed to growth rates. This is especially true of macroeconomic data. For example, transforming the  CPI data  into growth rates creates a data series representing rates of inflation. For example, converting real  gross domestic product  to growth rates in real GDP is done quickly using the code below.
+
+```{r example2}
+X<-X %>% ME_growth()
+kable(head(X))
+```
+
+The length of the data series can be manipulated by way of the date variable; e.g., maybe  only  real GDP data since 2000 is of interest. We can reduce the scope of the data with another call to the ME_growth function, as shown here.
+
+```{r example3}
+X1<-ME_growth(X,"2000-01-01")
+kable(head(X1))
+```
+
+Finally, most macroeconomic data, when presented in a classroom/report setting, include markers showing where in time recessions occurred. This data is collected by the national bureau of economic research (NBER) and deposited at the St. Louis FED. This data is extracted and  prepared for graphing use the ME_Rec function as shown here.
+
+```{r example4}
+rec<-ME_Rec(X1)
+kable(head(rec))
+```
+
+With the data trimmed to 2000 we can use the recession data to place recession markers in the picture showing real GDP series.
+
+```{r Fig2}
+X1%>%ggplot(aes(x=date, y=rgdp))+
+        geom_point()+
+        geom_line(color="red3")+
+        geom_path(data=rec, aes(x=date, y=Cyc))+
+        geom_hline(yintercept = 0)
+```
+
+The Federal Reserve Bank of St. Louis maintains thousands of economic time series  all are  available to the public. However, at this time ME_dtaextract function will only extract the four series stated above. The functions ME_growth and ME_Rec will work with any of the FEDS time series data.
