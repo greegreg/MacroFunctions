@@ -2,8 +2,7 @@
 #########         This package extracts and cleans #############
 #########    Macroeconomic data.                   #############
 ################################################################
-library(dplyr)
-library(readr)
+
 
 #' Series test
 #'

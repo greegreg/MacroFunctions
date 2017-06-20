@@ -5,8 +5,8 @@ Version: 0.1.0
 Author: Gregory Green
 Maintainer: The package maintainer <greegreg@gmail.com>
 Description: This package extracts some basic macroeconomic data, real gdp, CPI, unemployment rate, and population.
-              The functions ME_growth will manipulate a dat series to a series of growth rates so CPI becomes inflation
-              data. This function also trims the data to a specific range of dates. Finally, if you want to insert recesionn markers
+              The functions ME_growth will manipulate a data series to a series of growth rates so CPI becomes inflation
+              data. This function also trims the data to a specific range of dates. Finally, if you want to insert recessionn markers
               into the plot of data series use the function ME_Rec.
 License: CC0
 Encoding: UTF-8
