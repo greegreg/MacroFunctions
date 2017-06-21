@@ -89,7 +89,7 @@ fleext<-function(series, indx){                     #This function returns a fil
 #' @return A dataframe is returned with a time-series for the given argument placed within the function.
 #' This data frame is ready to be plotted and shown to a macroeconomic class, for example.
 #'
-#' @imporFrom readr read_table
+#' @importFrom readr read_table
 #'
 #' @examples ME_dtaextract("RGDP")
 #' @examples ME_dtaextract("Unemploymentrate")

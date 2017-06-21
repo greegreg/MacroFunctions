@@ -15,7 +15,119 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(knitr)
 library(MacroFunctions)
+ME_series<-function(series){
+        avseries<-toupper(c("RGDP", "CPI", "Unemploymentrate", "Population","Recession"))
+        test<-series %in% avseries
+        if(test==FALSE){
+                stop("This data series is not available to this function")
+        }else{
+                xout<-TRUE
+                return(xout)
+        }
+}
+fleindex<-function(series){                          #The output of this function tells r how to construct
+        tst<-toupper(series)                         #a file sequence and a skip variable
+        if(tst=="RGDP"){
+                xout<-1
+        }else if(tst=="CPI"){
+                xout<-2
+        }else if(tst=="UNEMPLOYMENTRATE"){
+                xout<-3
+        }else if(tst=="POPULATION"){
+                xout<-4
+        }else{
+                xout<-5
+        }
+        return(xout)                                   #Returning an index for extracting data
+}
+fleext<-function(series, indx){                     #This function returns a file extension
+        baseprefix<-"https://fred.stlouisfed.org/data"
+        tfleext<-c("GDPC1.txt", "CPIAUCSL.txt", "UNRATE.txt", "POP.txt", "USREC.txt")
+        xout<-file.path(baseprefix, tfleext[indx])
+        return(xout)
+}
+ME_dtaextract<-function(series){                     #This is the main function
+        srs<-toupper(series)
+        tst<-ME_series(srs)
+        if(tst==TRUE){
+                indx<-fleindex(srs)               #Returns the extraction index for the vector index
+                flenm<-fleext(srs, indx)
+                fskip<-c(19, 54, 24, 30, 71)
+                units<-c("millions", "Index", "percent", "thousands", "unit")
+                skp<-fskip[indx]
+                unt<-units[indx]
+                dfout<-readr::read_table(flenm, col_names=TRUE, skip=skp, col_types="Dd") %>%
+                        dplyr::mutate(units=unt)
+                colnames(dfout)<-c("date", tolower(srs), "units")
+        }
+        return(dfout)                                 #Returns a data frame with the chosen series
+}
+grth<-function(X){
+        n<-nrow(X)
+        v<-X[,2][[1]]
+        dv<-diff(v)
+        gr<-dv/v[1:(n-1)]
+        gr<-data.frame(Growth=c(NA,gr))
+        return(gr)
+}
+TM_detect<-function(X){
+        dt1<-as.numeric(X[1,1][[1]])
+        dt2<-as.numeric(X[2,1][[1]])
+        dt<-abs(dt1-dt2)
+        if(dt<=1){
+                xout<-list("Daily",365)
+        }else if(dt<=31){
+                xout<-list("Monthly", 12)
+        }else if(dt<=3*31){
+                xout<-list("Quarterly",4)
+        }else{
+                xout<-list("Annual",1)
+        }
+        return(xout)
+}
+ME_growth<-function(X, mindate=NULL, maxdate=NULL){
+        nms<-names(X)
+        if(!("Growth" %in% nms)){
+                xout<-cbind(X, grth(X))
+                xout<-xout[-1,]
+                TME<-TM_detect(xout)
+                xout<-xout %>% dplyr::mutate(Measure=TME[[1]][[1]],
+                                             Annual_Growth=Growth*TME[[2]][[1]], Measured="Annual")
+        }else{
+                        xout<-X
+                }
+        if(!is.null(mindate) | !is.null(maxdate)){
+                xout<-dt_trim(xout,mindate=mindate, maxdate=maxdate)
+        }
+        return(xout)
+}
+dt_trim<-function(X, mindate=NULL, maxdate=NULL){
+        if(!is.null(mindate)){
+                tmindate<-as.Date(mindate)
+        }else{
+                tmindate<-min(X$date)
+        }
+        if(!is.null(maxdate)){
+                tmaxdate<-as.Date(maxdate)
+        }else{
+                tmaxdate<-max(X$date)
+        }
+        xout<-X %>% dplyr::filter(date>=tmindate & date<=tmaxdate)
+        return(xout)
+}
+groomdata<-function(A, B, level){
+        if(level==TRUE){
+                XOUT<-A %>%  dplyr::mutate(Cyc=max(B[,2])*recession) %>% dplyr::filter(date>=min(B$date))
+        }else{
+                XOUT<-A %>%  dplyr::mutate(Cyc=max(B[,6])*recession) %>% dplyr::filter(date>=min(B$date))
+        }
 
+}
+ME_Rec<-function(B, level=TRUE){
+        A<-ME_dtaextract("Recession")                #Extract the recession data
+        XOUT<-groomdata(A,B, level)
+        return(XOUT)
+}
 ```
 
 # AdvancedR
